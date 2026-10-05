@@ -1,0 +1,24 @@
+{
+  "title": "The Daily Paper",
+  "tagline": "All the News That's Fit to Print",
+  "sources": [],
+  "sections": [
+    "General"
+  ],
+  "keywords": [],
+  "boost": "subtle",
+  "email": {
+    "to": "",
+    "host": "smtp.gmail.com",
+    "port": 465
+  },
+  "schedule": {
+    "enabled": false,
+    "time": "07:00"
+  },
+  "timezone": "America/New_York",
+  "max_total": 14,
+  "max_per_source": 4,
+  "lookback_hours": 36,
+  "max_words": 350
+}
