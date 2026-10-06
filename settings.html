@@ -48,28 +48,37 @@ label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--mu
 <label class="f">Max per source<input type="number" min="1" max="15" data-k="max_per_source"></label></div></section>
 </div></main>
 <script>
-const $=s=>document.querySelector(s),LS='dailypaper-conn';let C=JSON.parse(localStorage.getItem(LS)||'null'),S,sha,t;
+const $=s=>document.querySelector(s),LS='dailypaper-conn';
+let C=JSON.parse(localStorage.getItem(LS)||'null'),S,sha,t;
+
 const gh=(p,o={})=>fetch('https://api.github.com/repos/'+C.repo+p,{...o,headers:{Authorization:'Bearer '+C.token,Accept:'application/vnd.github+json'}});
 const enc=s=>btoa(String.fromCharCode(...new TextEncoder().encode(s))),dec=b=>new TextDecoder().decode(Uint8Array.from(atob(b.replace(/\n/g,'')),c=>c.charCodeAt(0)));
 const get=(o,p)=>p.split('.').reduce((a,k)=>a[k],o),put=(o,p,v)=>{const k=p.split('.'),l=k.pop();k.reduce((a,x)=>a[x],o)[l]=v};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-async function load(){const r=await gh('/contents/settings.json');if(!r.ok)throw new Error(r.status==401?'GitHub rejected that token.':r.status==404?'Repository or settings.json not found (check the name and token access).':'GitHub error '+r.status);
- const j=await r.json();sha=j.sha;S=JSON.parse(dec(j.content))}
-async function saveNow(){clearTimeout(t);$('#saved').textContent='Saving…';
- const put1=()=>gh('/contents/settings.json',{method:'PUT',body:JSON.stringify({message:'Update settings',content:enc(JSON.stringify(S,null,2)),sha})});
- let r=await put1();if(r.status==409||r.status==422){sha=(await(await gh('/contents/settings.json')).json()).sha;r=await put1()}
- if(!r.ok){$('#saved').textContent='Save failed ('+r.status+')';return}sha=(await r.json()).content.sha;$('#saved').textContent='Saved ✓'}
-function save(){clearTimeout(t);$('#saved').textContent='Saving…';t=setTimeout(saveNow,1500)}
-function draw(){
- document.querySelectorAll('[data-k]').forEach(e=>{const v=get(S,e.dataset.k);e.type=='checkbox'?e.checked=v:e.value=v});
- const secs=S.sections;
- $('#sources').innerHTML=S.sources.length?S.sources.map((s,i)=>`<div class="src"><div class="nm"><input data-i="${i}" data-f="name" value="${esc(s.name||'')}" placeholder="Name (detected automatically)"><span class="badge">${s.kind?(s.kind=='rss'?'Feed':'Page'):'Auto'}</span></div>
-  <select data-i="${i}" data-f="section">${secs.map(x=>`<option${x==s.section?' selected':''}>${esc(x)}</option>`).join('')}</select>
-  <select data-i="${i}" data-f="priority">${['lead','high','normal','low'].map(p=>`<option value="${p}"${p==s.priority?' selected':''}>${p[0].toUpperCase()+p.slice(1)}</option>`).join('')}</select>
-  <label title="Include in the paper"><input type="checkbox" data-i="${i}" data-f="enabled"${s.enabled!==false?' checked':''}></label><button data-del="${i}" title="Remove">✕</button><small>${esc(s.url)}</small></div>`).join(''):'<p class="hint" style="margin-top:12px">No sources yet — add one above.</p>';
- $('#sections').innerHTML=secs.map((s,i)=>`<span class="chip">${esc(s)}<button data-up="${i}">↑</button><button data-dn="${i}">↓</button>${secs.length>1?`<button data-rs="${i}">✕</button>`:''}</span>`).join('');
- $('#keywords').innerHTML=S.keywords.map((k,i)=>`<span class="chip">${esc(k)}<button data-rk="${i}">✕</button></span>`).join('')||'<span class="hint">None yet</span>';
+
+async function load(){
+  const r=await gh('/contents/settings.json');
+  if(!r.ok)throw new Error(r.status==401?'GitHub rejected that token.':r.status==404?'Repository or settings.json not found (check the name and token access).':'GitHub error '+r.status);
+  const j=await r.json();sha=j.sha;S=JSON.parse(dec(j.content))
 }
+
+async function saveNow(){
+  clearTimeout(t);$('#saved').textContent='Saving…';
+  const put1=()=>gh('/contents/settings.json',{method:'PUT',body:JSON.stringify({message:'Update settings',content:enc(JSON.stringify(S,null,2)),sha})});
+  let r=await put1();if(r.status==409||r.status==422){sha=(await(await gh('/contents/settings.json')).json()).sha;r=await put1()}
+  if(!r.ok){$('#saved').textContent='Save failed ('+r.status+')';return}sha=(await r.json()).content.sha;$('#saved').textContent='Saved ✓'
+}
+
+function save(){clearTimeout(t);$('#saved').textContent='Saving…';t=setTimeout(saveNow,1500)}
+
+function draw(){
+  document.querySelectorAll('[data-k]').forEach(e=>{const v=get(S,e.dataset.k);e.type=='checkbox'?e.checked=v:e.value=v});
+  const secs=S.sections;
+  $('#sources').innerHTML=S.sources.length?S.sources.map((s,i)=>`<div class="src"><div class="nm"><input data-i="${i}" data-f="name" value="${esc(s.name||'')}" placeholder="Name (detected automatically)"><span class="badge">${s.kind?(s.kind=='rss'?'Feed':'Page'):'Auto'}</span></div> <select data-i="${i}" data-f="section">${secs.map(x=>`<option${x==s.section?' selected':''}>${esc(x)}</option>`).join('')}</select> <select data-i="${i}" data-f="priority">${['lead','high','normal','low'].map(p=>`<option value="${p}"${p==s.priority?' selected':''}>${p[0].toUpperCase()+p.slice(1)}</option>`).join('')}</select> <label title="Include in the paper"><input type="checkbox" data-i="${i}" data-f="enabled"${s.enabled!==false?' checked':''}></label><button data-del="${i}" title="Remove">✕</button><small>${esc(s.url)}</small></div>`).join(''):'<p class="hint" style="margin-top:12px">No sources yet — add one above.</p>';
+  $('#sections').innerHTML=secs.map((s,i)=>`<span class="chip">${esc(s)}<button data-up="${i}">↑</button><button data-dn="${i}">↓</button>${secs.length>1?`<button data-rs="${i}">✕</button>`:''}</span>`).join('');
+  $('#keywords').innerHTML=S.keywords.map((k,i)=>`<span class="chip">${esc(k)}<button data-rk="${i}">✕</button></span>`).join('')||'<span class="hint">None yet</span>';
+}
+
 document.addEventListener('input', e => {
   const d = e.target.dataset;
   if (!S) S = { sources: [], sections: ['General'], keywords: [] };
@@ -82,22 +91,69 @@ document.addEventListener('input', e => {
     save();
   }
 });
+
 document.addEventListener('change',e=>{const d=e.target.dataset;if(d.f&&e.target.tagName=='SELECT'){S.sources[d.i][d.f]=e.target.value;save()}else if(d.k=='boost')save()});
-document.addEventListener('click',e=>{const d=e.target.dataset,sw=(a,i,j)=>[a[i],a[j]]=[a[j],a[i]];
- if(d.del!=null)S.sources.splice(d.del,1);else if(d.rk!=null)S.keywords.splice(d.rk,1);
- else if(d.up!=null&&+d.up>0)sw(S.sections,+d.up,d.up-1);else if(d.dn!=null&&+d.dn<S.sections.length-1)sw(S.sections,+d.dn,+d.dn+1);
- else if(d.rs!=null){const g=S.sections.splice(d.rs,1)[0];S.sources.forEach(s=>{if(s.section==g)s.section=S.sections[0]})}else return;draw();save()});
-$('#add').onclick=()=>{let u=$('#url').value.trim();if(!u)return;if(!/^https?:\/\//i.test(u))u='https://'+u;
- S.sources.push({name:'',url:u,section:S.sections[0],priority:'normal',enabled:true});$('#url').value='';draw();save()};
-const addTo=(inp,arr)=>{const v=$(inp).value.trim();if(v&&!S[arr].includes(v)){S[arr].push(v);$(inp).value='';draw();save()}};
-$('#addsec').onclick=()=>addTo('#newsec','sections');$('#addkw').onclick=()=>addTo('#newkw','keywords');
-[['#url','#add'],['#newsec','#addsec'],['#newkw','#addkw']].forEach(([i,b])=>$(i).onkeydown=e=>e.key=='Enter'&&$(b).click());
-$('#send').onclick=async()=>{$('#send').disabled=true;await saveNow();const r=await gh('/actions/workflows/daily.yml/dispatches',{method:'POST',body:JSON.stringify({ref:'main'})});
- $('#status').innerHTML=r.status==204?`Started — arrives in a few minutes · <a target="_blank" href="https://github.com/${C.repo}/actions">view run</a>`:`Couldn’t start (${r.status}). The token needs Actions: read &amp; write.`;$('#send').disabled=false};
+
+document.addEventListener('click',e=>{
+  const d=e.target.dataset,sw=(a,i,j)=>[a[i],a[j]]=[a[j],a[i]];
+  if(d.del!=null)S.sources.splice(d.del,1);
+  else if(d.rk!=null)S.keywords.splice(d.rk,1);
+  else if(d.up!=null&&+d.up>0)sw(S.sections,+d.up,d.up-1);
+  else if(d.dn!=null&&+d.dn<S.sections.length-1)sw(S.sections,+d.dn,+d.dn+1);
+  else if(d.rs!=null){const g=S.sections.splice(d.rs,1)[0];S.sources.forEach(s=>{if(s.section==g)s.section=S.sections[0]})}
+  else return;
+  draw();save()
+});
+
+$('#add').onclick=()=>{
+  if(!S) S={sources:[],sections:['General'],keywords:[]};
+  let u=$('#url').value.trim();if(!u)return;
+  if(!/^https?:\/\//i.test(u))u='https://'+u;
+  const defaultSec=(S.sections&&S.sections.length)?S.sections[0]:'General';
+  S.sources=S.sources||[];
+  S.sources.push({name:'',url:u,section:defaultSec,priority:'normal',enabled:true});
+  $('#url').value='';draw();save()
+};
+
+const addTo=(inp,arr)=>{
+  if(!S) S={sources:[],sections:['General'],keywords:[]};
+  S[arr]=S[arr]||[];
+  const v=$(inp).value.trim();
+  if(v&&!S[arr].includes(v)){S[arr].push(v);$(inp).value='';draw();save()}
+};
+
+$('#addsec').onclick=()=>addTo('#newsec','sections');
+$('#addkw').onclick=()=>addTo('#newkw','keywords');
+
+[['#url','#add'],['#newsec','#addsec'],['#newkw','#addkw']].forEach(([i,b])=>$(i).onkeydown=e=>e.key=='Enter'&&(b).click());
+
+$('#send').onclick=async()=>{
+  $('#send').disabled=true;
+  await saveNow();
+  const r=await gh('/actions/workflows/daily.yml/dispatches',{method:'POST',body:JSON.stringify({ref:'main'})});
+  $('#status').innerHTML=r.status==204?'Started — arrives in a few minutes · <a href="https://github.com/'+C.repo+'/actions" target="_blank">view run</a>':'Couldn\'t start ('+r.status+')'
+};
+
 $('#out').onclick=()=>{localStorage.removeItem(LS);location.reload()};
-$('#go').onclick=async()=>{C={repo:$('#repo').value.trim().replace(/^https?:\/\/github\.com\//,''),token:$('#tok').value.trim()};$('#conerr').textContent='Connecting…';
- try{await load();localStorage.setItem(LS,JSON.stringify(C));start()}catch(x){$('#conerr').textContent=x.message}};
-function start(){$('#connect').classList.add('hide');['#app','#out','#send'].forEach(s=>$(s).classList.remove('hide'));
- $('#tzs').innerHTML=(Intl.supportedValuesOf?Intl.supportedValuesOf('timeZone'):[]).map(z=>`<option value="${z}">`).join('');draw()}
-if(C)load().then(start).catch(x=>{$('#conerr').textContent=x.message;$('#repo').value=C.repo});
-</script></body></html>
+
+$('#go').onclick=async()=>{
+  C={repo:$('#repo').value.trim().replace(/^https?:\/\/github\.com\//,''),token:$('#tok').value.trim()};
+  $('#conerr').textContent='Connecting…';
+  try{
+    await load();
+    localStorage.setItem(LS,JSON.stringify(C));
+    start()
+  }catch(x){
+    $('#conerr').textContent=x.message
+  }
+};
+
+function start(){
+  $('#connect').classList.add('hide');
+  ['#app','#out','#send'].forEach(s=>$(s).classList.remove('hide'));
+  draw()
+}
+
+if(C){start();load().then(draw).catch(e=>{$('#status').textContent=e.message})}
+</script>
+</body></html>
