@@ -1,0 +1,35 @@
+name: Daily Paper
+on:
+  schedule:
+    - cron: "0 * * * *"     # hourly; run.py only sends once your chosen time has passed each day
+  workflow_dispatch:         # the "Send now" button in the settings page
+permissions:
+  contents: write
+concurrency: daily-paper
+jobs:
+  paper:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        run: python3 run.py check
+      - if: steps.check.outputs.go == 'true'
+        uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - if: steps.check.outputs.go == 'true'
+        run: sudo apt-get update && sudo apt-get install -y libpango-1.0-0 libpangoft2-1.0-0 fonts-liberation && pip install -r requirements.txt
+      - if: steps.check.outputs.go == 'true'
+        env:
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+        run: python run.py build
+      - if: steps.check.outputs.go == 'true'
+        uses: actions/upload-artifact@v4
+        with: { name: daily-paper, path: editions/*.pdf, retention-days: 7 }
+      - if: steps.check.outputs.go == 'true'
+        run: |
+          git config user.name "daily-paper"
+          git config user.email "daily-paper@users.noreply.github.com"
+          git add state.json
+          git diff --cached --quiet || (git commit -m "Mark edition sent" && git push)
