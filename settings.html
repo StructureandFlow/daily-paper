@@ -70,8 +70,18 @@ function draw(){
  $('#sections').innerHTML=secs.map((s,i)=>`<span class="chip">${esc(s)}<button data-up="${i}">↑</button><button data-dn="${i}">↓</button>${secs.length>1?`<button data-rs="${i}">✕</button>`:''}</span>`).join('');
  $('#keywords').innerHTML=S.keywords.map((k,i)=>`<span class="chip">${esc(k)}<button data-rk="${i}">✕</button></span>`).join('')||'<span class="hint">None yet</span>';
 }
-document.addEventListener('input',e=>{const d=e.target.dataset;if(!S)return;if(d.k){put(S,d.k,e.target.type=='checkbox'?e.target.checked:e.target.type=='number'?+e.target.value:e.target.value);save()}
- else if(d.f&&e.target.tagName=='INPUT'){S.sources[d.i][d.f]=e.target.type=='checkbox'?e.target.checked:e.target.value;save()}});
+document.addEventListener('input', e => {
+  const d = e.target.dataset;
+  if (!S) S = { sources: [], sections: ['General'], keywords: [] };
+  if (d.k) {
+    put(S, d.k, e.target.type == 'checkbox' ? e.target.checked : e.target.type == 'number' ? +e.target.value : e.target.value);
+    save();
+  } else if (d.f && e.target.tagName == 'INPUT') {
+    if (!S.sources || !S.sources[d.i]) return;
+    S.sources[d.i][d.f] = e.target.type == 'checkbox' ? e.target.checked : e.target.value;
+    save();
+  }
+});
 document.addEventListener('change',e=>{const d=e.target.dataset;if(d.f&&e.target.tagName=='SELECT'){S.sources[d.i][d.f]=e.target.value;save()}else if(d.k=='boost')save()});
 document.addEventListener('click',e=>{const d=e.target.dataset,sw=(a,i,j)=>[a[i],a[j]]=[a[j],a[i]];
  if(d.del!=null)S.sources.splice(d.del,1);else if(d.rk!=null)S.keywords.splice(d.rk,1);
